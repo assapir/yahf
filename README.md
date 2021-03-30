@@ -47,6 +47,10 @@ example:
   }
   ```
 
+* `start()`
+  * Will start the server, listening on the port was passed in.
+  * Return `this` so it can be chained.
+
 ## Request lifecycle
 * Every middleware/handler will get the following object:
   ```typescript

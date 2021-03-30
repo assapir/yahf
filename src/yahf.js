@@ -122,5 +122,6 @@ export default class YAHF {
         this.#server.listen(port, () => {
             this.#logger(`Started YAHF. Listening on ${this.#server.address().address}:${port}`);
         });
+        return this;
     }
 }
