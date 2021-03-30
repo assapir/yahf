@@ -1,7 +1,7 @@
 import { createServer } from 'http';
 import { StringDecoder } from 'string_decoder';
 
-const CONTENT_TYPES = {
+export const CONTENT_TYPES = {
     JSON: 'application/json'
 }
 
@@ -12,9 +12,12 @@ const notFound = () => {
     };
 };
 export default class YAHF {
-    // init private properties
+    // init private fields
     #routes = {};
     #middlewares = [];
+    #server;
+    #options;
+    #logger;
 
     // private methods
     #requestInit(req) {
@@ -22,7 +25,7 @@ export default class YAHF {
             // get the url and parse it
             const parsedUrl = new URL(req.url, 'http://localhost:3000');
             // get the path so we can get the route, remove the leading '/' and empty string
-            const path = parsedUrl.pathname.split('/').filter(Boolean);
+            const path = parsedUrl.pathname.substring(1);
             // get the query string as an object
             const query = parsedUrl.query;
             // get the method
@@ -81,17 +84,20 @@ export default class YAHF {
         }
     }
 
-    constructor(opts = {}) {
-        const { port = 3000, host = 'localhost', logger = console.log } = opts;
-        const server = createServer();
+    // public properties
+    get logger() { return this.#logger; }
 
-        server.on('request', async (req, res) => {
+    // Public methods
+    constructor(opts = {}) {
+        this.#options = opts;
+        this.#logger = opts.logger ?? console.log;
+        this.#server = createServer();
+
+        this.#server.on('request', async (req, res) => {
             await this.#handleRequest(req, res);
         });
 
-        server.listen(port, host, () => {
-            logger(`YAHF listening on http://${host}:${port}`);
-        });
+
     }
 
     useMiddleware(middleware) {
@@ -99,7 +105,7 @@ export default class YAHF {
         return this;
     }
 
-    useRoute(path, handler) {
+    addHandler(path, handler) {
         if (Array.isArray(path)) {
             path.forEach((p, index) => {
                 this.#routes[p] = handler[index];
@@ -109,5 +115,12 @@ export default class YAHF {
 
         this.#routes[path] = handler;
         return this;
+    }
+
+    start() {
+        const { port = 1337 } = this.#options;
+        this.#server.listen(port, () => {
+            this.#logger(`Started YAHF. Listening on ${this.#server.address().address}:${port}`);
+        });
     }
 }
