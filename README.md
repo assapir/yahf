@@ -3,7 +3,7 @@
 
 Trying to build a HTTP server framework, without using any external modules, because who needs npm?!
 
-Everything is as I want it to be, not as you might one might use to.
+Everything is as I want it to be, not as one might used to.
 
 ## API
 
