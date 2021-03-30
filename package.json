@@ -1,0 +1,12 @@
+{
+  "name": "yahf",
+  "version": "1.0.0",
+  "description": "Yet Another HTTP Framework",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Assaf Sapir <me@ass.af>",
+  "license": "MIT"
+}
