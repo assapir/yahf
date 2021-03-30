@@ -17,7 +17,7 @@ YAHF.useRoute = (path, handler) => {
     routes[path] = handler;
 }
 
-YAHF.requestInit = (req, res) => {
+const requestInit = (req) => {
     return new Promise((resolve, reject) => {
         // get the url and parse it
         const parsedUrl = new URL(req.url, 'http://localhost:3000');
@@ -55,7 +55,7 @@ YAHF.requestInit = (req, res) => {
     });
 }
 
-YAHF.serverHandler = async (req, res) => {
+YAHF.handleRequest = async (req, res) => {
     try {
         const data = await requestInit(req, res);
         for (const middleware of middlewares) {
@@ -71,12 +71,12 @@ YAHF.serverHandler = async (req, res) => {
         // handle the request
         const handlerResult = await handler(data);
         // send the response
-        res.statusCode = handlerResult.statusCode || 200;
-        res.setHeader('Content-Type', handlerResult.contentType || 'text/html');
-        res.end(handlerResult.payload);
+        res.statusCode = handlerResult?.statusCode || 200;
+        res.setHeader('Content-Type', handlerResult?.contentType || 'text/html');
+        res.end(handlerResult?.payload);
     } catch (err) {
         res.statusCode = 500;
-        res.end(err.message);
+        res.end(err?.message);
     }
 }
 
