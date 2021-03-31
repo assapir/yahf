@@ -33,7 +33,7 @@ example:
   })
   ```
 
-* `addHandler(path:string | string[], handler: (data) => RequestResult | ((data) => RequestResult)[])`.
+* `addHandler(path:string | string[], handler: async (data) => RequestResult | (async (data) => RequestResult)[])`.
   * If arrays are supplied, it is up to the caller to make sure that the order of both is as the caller expected.
   * Return `this` so it can be chained.
   * `RequestResult` is optional.
@@ -47,9 +47,13 @@ example:
   }
   ```
 
-* `start()`
+* `start() : Promise<this>`
   * Will start the server, listening on the port was passed in.
-  * Return `this` so it can be chained.
+  * Resolves to `this` so it can be chained.
+
+* `kill() : Promise<this>`
+  * Will close the server.
+  * Resolves to `this` so it can be chained.
 
 ## Request lifecycle
 * Every middleware/handler will get the following object:

@@ -39,7 +39,7 @@ export default class YAHF {
                 buffer += decoder.write(data);
             });
 
-            req.on('end', () => {
+            req.once('end', () => {
                 buffer += decoder.end();
                 const data = {
                     path,
@@ -52,7 +52,7 @@ export default class YAHF {
                 resolve(data);
             });
 
-            req.on('error', (err) => {
+            req.once('error', err => {
                 reject(err);
             });
         });
@@ -118,10 +118,23 @@ export default class YAHF {
     }
 
     start() {
-        const { port = 1337 } = this.#options;
-        this.#server.listen(port, () => {
-            this.#logger(`Started YAHF. Listening on ${this.#server.address().address}:${port}`);
+        return new Promise((resolve) => {
+            this.#server.listen(this.#options.port ?? 1337, () => {
+                this.#logger(`Started YAHF. Listening on ${this.#server.address().address}:${this.#server.address().port}`);
+                resolve(this)
+            });
         });
-        return this;
+    }
+
+    kill() {
+        return new Promise((resolve, reject) =>{
+            this.#server.close(err => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(this);
+                }
+            });
+        });
     }
 }
