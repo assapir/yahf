@@ -11,5 +11,9 @@
     "test": "node ./tests/yahf.test.js "
   },
   "author": "Assaf Sapir <me@ass.af>",
-  "license": "MIT"
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/assaf/yahf.git"
+  }
 }
