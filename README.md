@@ -5,6 +5,8 @@ Trying to build a HTTP server framework, without using any external modules, bec
 
 Everything is as I want it to be, not as one might used to.
 
+[![Continuous Integration](https://github.com/assapir/yahf/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/assapir/yahf/actions/workflows/ci.yml)
+
 ## API
 
 * Create new YAHF instance, with default options

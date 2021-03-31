@@ -1,3 +1,3 @@
-import YAHF from './src/YAHF.js';
+import YAHF from './src/yahf.js';
 
 export default YAHF;
