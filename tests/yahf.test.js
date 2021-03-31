@@ -43,7 +43,7 @@ function requestYahf(method, path, body = '') {
 async function handlesGETWithDefaults() {
     const server = new YAHF();
     await server.start();
-    const res = await requestYahf('GET', '/api');
+    const res = await requestYahf('GET', '');
     await server.kill()
 
     strict.equal(res.statusCode, 404, `status code suppose to be 404, but was ${res.statusCode}`);
