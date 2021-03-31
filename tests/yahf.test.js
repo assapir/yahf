@@ -56,14 +56,19 @@ async function run() {
     ];
     const testNames = testPromises.map(testPromise => testPromise.name);
     const results = await Promise.allSettled(testPromises.map(testPromise => testPromise.call()));
-    results.map((result, idx) => {
+    const resultsStrings = results.map((result, idx) => {
         const testName = testNames[idx];
-        if (result.status === 'rejected') {
-            console.log(`Test ${testName} Failed! - ${result.reason.message}`);
-        } else {
-            console.log(`Test ${testName} Passed!`);
-        }
-    })
+        return result.status === 'rejected' ?
+            [`Test ${testName} Failed! - ${result.reason.message}`, false] :
+            [`Test ${testName} Passed!`, true];
+    });
+    if (resultsStrings.some(result => result[1] === false)) {
+        console.log(resultsStrings.filter(result => result[1] === false).map(result => result[0]));
+        process.exit(1);
+    } else {
+        console.log(resultsStrings.filter(result => result[1] === true).map(result => result[0]));
+        process.exit(0);
+    }
 }
 
 await run()

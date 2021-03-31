@@ -1,0 +1,9 @@
+{
+    "compilerOptions": {
+      "module": "esnext",
+      "target": "esnext",
+      "checkJs": true,
+      "forceConsistentCasingInFileNames": true
+    },
+    "exclude": ["node_modules"]
+  }

@@ -27,7 +27,7 @@ export default class YAHF {
             // get the path so we can get the route, remove the leading '/' and empty string
             const path = parsedUrl.pathname.substring(1);
             // get the query string as an object
-            const query = parsedUrl.query;
+            const query = parsedUrl.search;
             // get the method
             const method = req.method;
             // get the headers as an object
