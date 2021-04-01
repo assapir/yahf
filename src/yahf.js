@@ -65,7 +65,7 @@ export default class YAHF {
      */
     async #handleRequest(req, res) {
         try {
-            const data = await this.#requestInit(req, res);
+            const data = await this.#requestInit(req);
             for (const middleware of this.#middlewares) {
                 await middleware(data);
             }
@@ -77,6 +77,10 @@ export default class YAHF {
             // send the response
             res.statusCode = handlerResult?.statusCode || 200;
             res.setHeader('Content-Type', handlerResult?.contentType || CONTENT_TYPES.JSON);
+            // Set headers to re-write the response
+            for (const key in handlerResult?.headers) {
+                res.setHeader(key, handlerResult?.headers[key]);
+            }
             res.end(handlerResult?.payload);
         } catch (err) {
             res.statusCode = 500;

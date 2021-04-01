@@ -4,16 +4,21 @@ import { strict } from 'assert';
 
 import YAHF from '../index.js';
 
-function requestYahf(method, path, body = '') {
+function getRandomPort() {
+    return Math.floor(Math.random() * (2048 - 1338) + 1338);
+}
+
+function requestYahf(method, path, port = 1337, body = '') {
     return new Promise((resolve, reject) => {
         const options = {
             hostname: 'localhost',
-            port: 1337,
+            port,
             method,
             path,
             headers: {
                 'Content-Type': 'application/json',
-                'Content-Length': Buffer.byteLength(body)
+                'Content-Length': Buffer.byteLength(body),
+                'User-Agent': 'YAHF/0.1.1',
             }
         }
 
@@ -50,9 +55,36 @@ async function handlesGETWithDefaults() {
     strict.equal(res.headers['content-type'], 'application/json', `content-type suppose to be JSON, but it ${res.headers[`content-type`]}`);
 }
 
+async function handlesPOSTWithMiddlewareAndController() {
+    const port = getRandomPort()
+    const server = new YAHF({
+        port
+    }).useMiddleware(data => {
+        data.payload = `${data.headers['user-agent']} and ${data.method}`;
+    }).addHandler(['echo'], [async data => {
+        return {
+            statusCode: 201,
+            payload: data.payload,
+            contentType: 'text/plain',
+            headers: {
+                'oh-no': 'this is a test'
+            }
+        }
+    }]);
+    await server.start();
+    const res = await requestYahf('POST', '/echo', port);
+    await server.kill()
+
+    strict.equal(res.statusCode, 201, `status code suppose to be 201, but was ${res.statusCode}`);
+    strict.equal(res.headers['content-type'], 'text/plain', `content-type suppose to be text/plain, but it ${res.headers[`content-type`]}`);
+    strict.equal(res.body, 'YAHF/0.1.1 and POST', `body should have been YAHF/0.1.1, but it was ${res.body}`);
+    strict.equal(res.headers['oh-no'], 'this is a test', `headers should have been set to {'oh-no':'this is a test'}`);
+}
+
 async function run() {
     const testPromises = [
-        handlesGETWithDefaults
+        handlesGETWithDefaults,
+        handlesPOSTWithMiddlewareAndController
     ];
     const testNames = testPromises.map(testPromise => testPromise.name);
     const results = await Promise.allSettled(testPromises.map(testPromise => testPromise.call()));
