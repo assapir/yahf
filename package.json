@@ -4,6 +4,12 @@
   "description": "Yet Another HTTP Framework, that you don't really need",
   "main": "index.js",
   "type": "module",
+  "exports": {
+    ".": {
+      "require": "./index.cjs",
+      "default": "./index.js"
+    }
+  },
   "engines": {
     "node": ">= 14"
   },
