@@ -70,7 +70,7 @@ export default class YAHF {
                 await middleware(data);
             }
 
-            const handler = this.#routes[data.path] ?? notFound;
+            const handler = this.#routes[data.path]?.[data.method] ?? notFound;
 
             // handle the request
             const handlerResult = await handler(data);
@@ -109,15 +109,10 @@ export default class YAHF {
         return this;
     }
 
-    addHandler(path, handler) {
-        if (Array.isArray(path)) {
-            path.forEach((p, index) => {
-                this.#routes[p] = handler[index];
-            });
-            return this;
-        }
-
-        this.#routes[path] = handler;
+    addHandler({path, method, handler}) {
+        // add the handler to the routes for specific path and method
+        this.#routes[path] = this.#routes[path] ?? {};
+        this.#routes[path][method] = handler;
         return this;
     }
 

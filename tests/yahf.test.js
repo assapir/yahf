@@ -1,4 +1,3 @@
-import { assert } from 'console';
 import { request } from 'http';
 import { strict } from 'assert';
 
@@ -61,16 +60,20 @@ async function handlesPOSTWithMiddlewareAndController() {
         port
     }).useMiddleware(data => {
         data.payload = `${data.headers['user-agent']} and ${data.method}`;
-    }).addHandler(['echo'], [async data => {
-        return {
-            statusCode: 201,
-            payload: data.payload,
-            contentType: 'text/plain',
-            headers: {
-                'oh-no': 'this is a test'
+    }).addHandler({
+        path: 'echo',
+        method: 'POST',
+        handler: async data => {
+            return {
+                statusCode: 201,
+                payload: data.payload,
+                contentType: 'text/plain',
+                headers: {
+                    'oh-no': 'this is a test'
+                }
             }
         }
-    }]);
+    });
     await server.start();
     const res = await requestYahf('POST', '/echo', port);
     await server.kill()
@@ -81,10 +84,38 @@ async function handlesPOSTWithMiddlewareAndController() {
     strict.equal(res.headers['oh-no'], 'this is a test', `headers should have been set to {'oh-no':'this is a test'}`);
 }
 
+async function returns404ForDifferentMethods() {
+    const port = getRandomPort()
+    const server = new YAHF({
+        port
+    }).addHandler({
+        path: 'echo',
+        method: 'POST',
+        handler: async data => {
+            return {
+                statusCode: 201,
+                payload: data.payload,
+                contentType: 'text/plain',
+                headers: {
+                    'oh-no': 'this is a test'
+                }
+            }
+        }
+    });
+    await server.start();
+    const res = await requestYahf('GET', '/echo', port);
+    await server.kill()
+
+    strict.equal(res.statusCode, 404, `status code suppose to be 404, but was ${res.statusCode}`);
+    strict.equal(res.headers['content-type'], 'application/json', `content-type suppose to be JSON, but it ${res.headers[`content-type`]}`);
+}
+
+
 async function run() {
     const testPromises = [
         handlesGETWithDefaults,
-        handlesPOSTWithMiddlewareAndController
+        handlesPOSTWithMiddlewareAndController,
+        returns404ForDifferentMethods
     ];
     const testNames = testPromises.map(testPromise => testPromise.name);
     const results = await Promise.allSettled(testPromises.map(testPromise => testPromise.call()));
