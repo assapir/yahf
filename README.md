@@ -34,8 +34,7 @@ example:
   })
   ```
 
-* `addHandler(path:string | string[], handler: async (data) => RequestResult | (async (data) => RequestResult)[])`.
-  * If arrays are supplied, it is up to the caller to make sure that the order of both is as the caller expected.
+* `addHandler(path:string | string[], handler`: `async data => RequestResult | undefined`.
   * Return `this` so it can be chained.
   * `RequestResult` is optional.
 
@@ -48,20 +47,23 @@ example:
   }
   ```
 
-* `start() : Promise<this>`
+* `start()` : `Promise<this>`
   * Will start the server, listening on the port was passed in.
   * Resolves to `this` so it can be chained.
 
-* `kill() : Promise<this>`
+* `kill()` : `Promise<this>`
   * Will close the server.
   * Resolves to `this` so it can be chained.
+
+* `logger` : `(str: string) => void`
+  * Returns the passed in logger. will default to `console.log`
 
 ## Request lifecycle
 * Every middleware/handler will get the following object:
   ```typescript
   {
     path: string;
-    query: string; // Defaults to undefined
+    query: URLSearchParams;
     method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH'...;
     headers: object;
     payload: string; // Defaults to an empty string
