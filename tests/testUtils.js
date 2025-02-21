@@ -1,42 +1,28 @@
-import { request } from "http";
+import YAHF from "../index.js";
 
 export function getRandomPort() {
   return Math.floor(Math.random() * (2048 - 1338) + 1338);
 }
 
-export function requestYahf(method, path, port = 1337, body = "") {
-  return new Promise((resolve, reject) => {
-    const options = {
-      hostname: "localhost",
-      port,
-      method,
-      path,
-      headers: {
-        "Content-Type": "application/json",
-        "Content-Length": Buffer.byteLength(body),
-        "User-Agent": "YAHF/0.1.1",
-      },
-    };
+export function createServer(port) {
+  return new YAHF({
+    port,
+    logger: () => {},
+  });
+}
 
-    const req = request(options, (res) => {
-      res.setEncoding("utf8");
-      let resBody = "";
-      res.on("data", (chunk) => {
-        resBody += chunk;
-      });
-      res.on("error", reject);
-      res.on("end", () => {
-        resolve({
-          body: resBody,
-          statusCode: res.statusCode,
-          headers: res.headers,
-        });
-      });
-    });
+export async function requestYahf(method, path, port = 1337, body = "") {
+  const stringBody = typeof body === "string" ? body : JSON.stringify(body);
 
-    if (body.length) {
-      req.write(JSON.stringify(body));
-    }
-    req.end();
+  const headers = {
+    "Content-Type": "application/json",
+    "Content-Length": Buffer.byteLength(stringBody),
+    "User-Agent": "YAHF/0.1.1",
+  };
+
+  return fetch(`http://localhost:${port}${path}`, {
+    method,
+    headers,
+    body: stringBody ? stringBody : undefined,
   });
 }
