@@ -8,7 +8,7 @@
     "node": ">= 14"
   },
   "scripts": {
-    "test": "node ./tests/testRunner.js "
+    "test": "node --test"
   },
   "author": "Assaf Sapir <me@ass.af>",
   "license": "MIT",
