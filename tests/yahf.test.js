@@ -104,4 +104,23 @@ describe("YAHF", () => {
       `content-type suppose to be JSON, but it ${res.headers[`content-type`]}`
     );
   });
+
+  it("Handles empty body", async () => {
+    const port = getRandomPort();
+    const server = createServer(port).addHandler({
+      path: "echo",
+      method: "POST",
+      handler: async (data) => {
+        return {
+          payload: data.payload,
+        };
+      },
+    });
+
+    await server.start();
+    const res = await requestYahf("POST", "/echo", port, null);
+    await server.kill();
+    const body = await res.text();
+    assert.equal(body, "", `body should have been empty, but it was ${body}`);
+  });
 });
