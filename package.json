@@ -1,6 +1,6 @@
 {
   "name": "yahf",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Yet Another HTTP Framework, that you don't really need",
   "main": "index.js",
   "type": "module",
