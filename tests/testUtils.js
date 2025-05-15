@@ -12,11 +12,12 @@ export function createServer(port) {
 }
 
 export async function requestYahf(method, path, port = 1337, body = "") {
-  const stringBody = typeof body === "string" ? body : JSON.stringify(body);
+  const stringBody =
+    typeof body === "string" || !body ? body : JSON.stringify(body);
 
   const headers = {
     "Content-Type": "application/json",
-    "Content-Length": Buffer.byteLength(stringBody),
+    "Content-Length": Buffer.byteLength(stringBody ?? ""),
     "User-Agent": "YAHF/0.1.1",
   };
 

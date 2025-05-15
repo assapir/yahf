@@ -23,25 +23,23 @@ export default class YAHF {
   // private methods
   #requestInit(req) {
     return new Promise((resolve, reject) => {
-      // get the url and parse it
       const parsedUrl = new URL(req.url, `http://${req.headers.host}`);
-      // get the path so we can get the route, remove the leading '/' and empty string
       const path = parsedUrl.pathname.substring(1);
-      // get the query string as an object
       const query = parsedUrl.searchParams;
-      // get the method
       const method = req.method;
-      // get the headers as an object
       const headers = req.headers;
       // get the payload if any
       const decoder = new StringDecoder("utf-8");
-      let payload = "";
+
+      let payload = undefined;
       req.on("data", (data) => {
         payload += decoder.write(data);
       });
 
       req.once("end", () => {
-        payload += decoder.end();
+        if (payload) {
+          payload += decoder.end();
+        }
         const data = {
           path,
           query,
@@ -81,6 +79,7 @@ export default class YAHF {
         "Content-Type",
         handlerResult?.contentType || CONTENT_TYPES.JSON
       );
+
       // Set headers to re-write the response
       for (const key in handlerResult?.headers) {
         res.setHeader(key, handlerResult?.headers[key]);

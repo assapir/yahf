@@ -91,7 +91,7 @@ server.useMiddleware((data) => {
     query: URLSearchParams;
     method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH'...;
     headers: object;
-    payload: string; // Defaults to an empty string
+    payload?: string; // May be undefined if no body was sent
   }
   ```
 - Middlewares are called FIFO, and called before any handler.
