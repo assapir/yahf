@@ -20,18 +20,26 @@ export default class YAHF {
   #options;
   #logger;
 
+  // static methods
+  static #normalizePath(path) {
+    if (path.startsWith("/")) {
+      return path;
+    }
+    return `/${path}`;
+  }
+
   // private methods
   #requestInit(req) {
     return new Promise((resolve, reject) => {
       const parsedUrl = new URL(req.url, `http://${req.headers.host}`);
-      const path = parsedUrl.pathname.substring(1);
+      const path = YAHF.#normalizePath(parsedUrl.pathname);
       const query = parsedUrl.searchParams;
       const method = req.method;
       const headers = req.headers;
       // get the payload if any
       const decoder = new StringDecoder("utf-8");
 
-      let payload = undefined;
+      let payload = "";
       req.on("data", (data) => {
         payload += decoder.write(data);
       });
@@ -69,10 +77,11 @@ export default class YAHF {
         await middleware(data);
       }
 
-      const handler = this.#routes[data.path]?.[data.method] ?? notFound;
+      const methodRoutes = this.#routes[data.method] || [];
+      const route = methodRoutes.find(({ pattern }) => pattern.test(data.path));
 
       // handle the request
-      const handlerResult = await handler(data);
+      const handlerResult = await this.#getHandlerResponse(route, data);
       // send the response
       res.statusCode = handlerResult?.statusCode || 200;
       res.setHeader(
@@ -89,6 +98,16 @@ export default class YAHF {
       res.statusCode = 500;
       res.end(err?.message);
     }
+  }
+
+  #getHandlerResponse(route, data) {
+    if (!route) {
+      return notFound(data);
+    }
+
+    const groups = route.pattern.exec(data.path)?.pathname?.groups;
+    const handler = route.handler;
+    return handler({ ...data, groups });
   }
 
   // public properties
@@ -120,10 +139,20 @@ export default class YAHF {
     return this;
   }
 
+  /**
+   * Adds a new route handler for a specific path and method.
+   * @param {Object} options - The route handler configuration.
+   * @param {string} options.path - The path for the route.
+   * @param {string} options.method - The HTTP method for the route.
+   * @param {Function} options.handler - The handler function for the route.
+   * @returns {YAHF} The YAHF instance for chaining.
+   */
   addHandler({ path, method, handler }) {
     // add the handler to the routes for specific path and method
-    this.#routes[path] = this.#routes[path] ?? {};
-    this.#routes[path][method] = handler;
+    const normalizedMethod = method.toUpperCase();
+    this.#routes[normalizedMethod] = this.#routes[normalizedMethod] ?? [];
+    const pattern = new URLPattern({ pathname: YAHF.#normalizePath(path) });
+    this.#routes[normalizedMethod].unshift({ pattern, handler });
     return this;
   }
 

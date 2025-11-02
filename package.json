@@ -1,14 +1,14 @@
 {
   "name": "yahf",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "description": "Yet Another HTTP Framework, that you don't really need",
   "main": "index.js",
   "type": "module",
   "engines": {
-    "node": ">= 22"
+    "node": ">= 24"
   },
   "scripts": {
-    "test": "node --test"
+    "test": "node --test --experimental-test-coverage"
   },
   "author": "Assaf Sapir <me@ass.af>",
   "license": "MIT",
