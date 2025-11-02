@@ -5,10 +5,10 @@
   "main": "index.js",
   "type": "module",
   "engines": {
-    "node": ">= 22"
+    "node": ">= 24"
   },
   "scripts": {
-    "test": "node --test"
+    "test": "node --test --experimental-test-coverage"
   },
   "author": "Assaf Sapir <me@ass.af>",
   "license": "MIT",

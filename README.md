@@ -59,6 +59,8 @@ server.useMiddleware((data) => {
 
   - Return `this` so it can be chained.
   - `RequestResult` is optional.
+  - Routes are matched using `URLPattern`, supporting static paths and parameterized routes (e.g., `/echo/:id`).
+  - Route precedence follows LIFO (Last In, First Out): the most recently added matching route is selected.
 
 - `RequestResult`
 
@@ -92,6 +94,7 @@ server.useMiddleware((data) => {
     method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH'...;
     headers: object;
     payload?: string; // May be undefined if no body was sent
+    groups?: object; // Optional URL pattern groups from route matching
   }
   ```
 - Middlewares are called FIFO, and called before any handler.
