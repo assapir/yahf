@@ -51,13 +51,16 @@ import YAHF from "yahf";
 
 const server = new YAHF();
 server.useMiddleware((data) => {
-  server.logger(data);
+  server.logger(JSON.stringify(data));
 });
 ```
 
-- `addHandler(path:string | string[], handler`: `async data => RequestResult | undefined`.
+- `addHandler({ path, method, handler })`: Add a route handler.
 
-  - Return `this` so it can be chained.
+  - `path`: `string` - The path for the route (e.g., `"echo"` or `"/echo/:id"`)
+  - `method`: `string` - The HTTP method (e.g., `"GET"`, `"POST"`, etc.)
+  - `handler`: `async (data) => RequestResult | undefined` - The handler function
+  - Returns `this` so it can be chained.
   - `RequestResult` is optional.
   - Routes are matched using `URLPattern`, supporting static paths and parameterized routes (e.g., `/echo/:id`).
   - Route precedence follows LIFO (Last In, First Out): the most recently added matching route is selected.
@@ -66,9 +69,10 @@ server.useMiddleware((data) => {
 
   ```typescript
   {
-    statusCode: number; // Defaults to 200
-    contentType: string; // Defaults to 'application/json'
-    payload: any;
+    statusCode?: number; // Defaults to 200
+    contentType?: string; // Defaults to 'application/json'
+    payload?: any;
+    headers?: object; // Optional headers to set on the response
   }
   ```
 
@@ -84,6 +88,40 @@ server.useMiddleware((data) => {
 - `logger` : `(str: string) => void`
   - Returns the passed in logger. will default to `console.log`
 
+## Example Usage
+
+```javascript
+import YAHF from "yahf";
+
+const server = new YAHF()
+  .useMiddleware((data) => {
+    server.logger(`[${data.method}] ${data.path}`);
+  })
+  .addHandler({
+    path: "echo",
+    method: "POST",
+    handler: async (data) => {
+      return {
+        payload: data.payload,
+      };
+    },
+  })
+  .addHandler({
+    path: "/users/:id",
+    method: "GET",
+    handler: async (data) => {
+      const userId = data.groups.id;
+      return {
+        statusCode: 200,
+        contentType: "application/json",
+        payload: JSON.stringify({ userId }),
+      };
+    },
+  });
+
+server.start();
+```
+
 ## YAHF request lifecycle
 
 - Every middleware/handler will get the following object:
@@ -98,4 +136,5 @@ server.useMiddleware((data) => {
   }
   ```
 - Middlewares are called FIFO, and called before any handler.
-- Handlers are called for exact match for the path, without starting `/`.
+- Handlers are matched based on both path and HTTP method.
+- Route patterns support parameters (e.g., `/users/:id`) and the matched values are available in `groups`.
