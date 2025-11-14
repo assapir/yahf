@@ -1,3 +1,8 @@
+/**
+ * @module yahf.test
+ * @description Test suite for the YAHF HTTP framework
+ */
+
 import assert from "node:assert";
 import { describe, it } from "node:test";
 
