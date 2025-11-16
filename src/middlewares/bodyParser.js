@@ -1,11 +1,31 @@
+/**
+ * @module bodyParser
+ * @description Body parsing middleware for YAHF that handles JSON and text payloads
+ */
+
 import { StringDecoder } from "node:string_decoder";
 import { CONTENT_TYPES } from "../yahf.js";
 
+/**
+ * Body parser middleware class for parsing HTTP request bodies
+ * @class
+ */
 export class BodyParser {
+  /**
+   * Creates a new BodyParser instance
+   * @constructor
+   * @returns {Function} A bound parse function to be used as middleware
+   */
   constructor() {
     return this.#parse.bind(this);
   }
 
+  /**
+   * Main parsing method that routes to specific parsers based on content type
+   * @param {import('../yahf.js').RequestData} data - The request data object
+   * @returns {Promise<void>} A promise that resolves when parsing is complete
+   * @private
+   */
   #parse(data) {
     const contentType = data.headers["content-type"] || "plain/text";
     switch (contentType) {
@@ -21,6 +41,12 @@ export class BodyParser {
     }
   }
 
+  /**
+   * Parses plain text request body
+   * @param {import('../yahf.js').RequestData} data - The request data object
+   * @returns {Promise<void>} A promise that resolves when text parsing is complete
+   * @private
+   */
   #parseText(data) {
     const decoder = new StringDecoder("utf-8");
 
@@ -45,6 +71,13 @@ export class BodyParser {
     });
   }
 
+  /**
+   * Parses JSON request body
+   * @param {import('../yahf.js').RequestData} data - The request data object
+   * @returns {Promise<void>} A promise that resolves when JSON parsing is complete
+   * @throws {Error} If JSON parsing fails
+   * @private
+   */
   #parseJSON(data) {
     const decoder = new StringDecoder("utf-8");
 

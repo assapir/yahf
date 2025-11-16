@@ -4,6 +4,7 @@ import { BodyParser } from "./middlewares/bodyParser.js";
 /**
  * @typedef {Object} ContentTypes
  * @property {string} JSON - The content type for JSON responses
+ * @property {string} TEXT - The content type for plain text responses
  */
 
 /**
@@ -21,8 +22,9 @@ export const CONTENT_TYPES = {
  * @property {URLSearchParams} query - The query parameters from the URL
  * @property {string} method - The HTTP method (GET, POST, etc.)
  * @property {Object.<string, string>} headers - Request headers
- * @property {string} payload - The request body as a string
+ * @property {string|Object} [payload] - The request body (string or parsed object)
  * @property {Object.<string, string>} [groups] - URL pattern groups (path parameters)
+ * @property {import('node:http').IncomingMessage} [req] - The raw HTTP request object (available in middlewares)
  */
 
 /**
@@ -102,7 +104,7 @@ export default class YAHF {
   /**
    * Initializes and parses an incoming HTTP request
    * @param {import('node:http').IncomingMessage} req - The incoming HTTP request
-   * @returns {Promise<RequestData>} A promise that resolves to the parsed request data
+   * @returns {RequestData} The parsed request data object
    * @private
    */
   #requestInit(req) {
@@ -152,10 +154,10 @@ export default class YAHF {
   }
 
   /**
-   * Gets the handler response for a matched route
-   * @param {RouteEntry|undefined} route - The matched route entry
-   * @param {RequestData} data - The request data
-   * @returns {Promise<HandlerResponse>|HandlerResponse} The handler response
+   * Sends the HTTP response to the client
+   * @param {import('node:http').ServerResponse} res - The HTTP response object
+   * @param {HandlerResponse} handlerResult - The handler result to send
+   * @returns {void}
    * @private
    */
   #sendResponse(res, handlerResult) {
@@ -171,6 +173,13 @@ export default class YAHF {
     res.end(this.#serializePayload(handlerResult?.payload, contentType));
   }
 
+  /**
+   * Serializes the response payload based on content type
+   * @param {*} payload - The payload to serialize
+   * @param {string} contentType - The content type of the response
+   * @returns {string} The serialized payload
+   * @private
+   */
   #serializePayload(payload, contentType) {
     if (contentType === CONTENT_TYPES.JSON) {
       return JSON.stringify(payload);
@@ -178,6 +187,13 @@ export default class YAHF {
     return payload;
   }
 
+  /**
+   * Gets the handler response for a matched route
+   * @param {RouteEntry|undefined} route - The matched route entry
+   * @param {RequestData} data - The request data
+   * @returns {Promise<HandlerResponse>|HandlerResponse} The handler response
+   * @private
+   */
   #getHandlerResponse(route, data) {
     if (!route) {
       return notFound(data);
