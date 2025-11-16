@@ -1,5 +1,5 @@
 import { createServer } from "node:http";
-import { StringDecoder } from "node:string_decoder";
+import { BodyParser } from "./middlewares/bodyParser.js";
 
 /**
  * @typedef {Object} ContentTypes
@@ -12,6 +12,7 @@ import { StringDecoder } from "node:string_decoder";
  */
 export const CONTENT_TYPES = {
   JSON: "application/json",
+  TEXT: "text/plain",
 };
 
 /**
@@ -105,39 +106,19 @@ export default class YAHF {
    * @private
    */
   #requestInit(req) {
-    return new Promise((resolve, reject) => {
-      const parsedUrl = new URL(req.url, `http://${req.headers.host}`);
-      const path = YAHF.#normalizePath(parsedUrl.pathname);
-      const query = parsedUrl.searchParams;
-      const method = req.method;
-      const headers = req.headers;
-      // get the payload if any
-      const decoder = new StringDecoder("utf-8");
+    const parsedUrl = new URL(req.url, `http://${req.headers.host}`);
+    const path = YAHF.#normalizePath(parsedUrl.pathname);
+    const query = parsedUrl.searchParams;
+    const method = req.method;
+    const headers = req.headers;
 
-      let payload = "";
-      req.on("data", (data) => {
-        payload += decoder.write(data);
-      });
-
-      req.once("end", () => {
-        if (payload) {
-          payload += decoder.end();
-        }
-        const data = {
-          path,
-          query,
-          method,
-          headers,
-          payload,
-        };
-
-        resolve(data);
-      });
-
-      req.once("error", (err) => {
-        reject(err);
-      });
-    });
+    return {
+      path,
+      query,
+      method,
+      headers,
+      req,
+    };
   }
 
   /**
@@ -149,10 +130,12 @@ export default class YAHF {
    */
   async #handleRequest(req, res) {
     try {
-      const data = await this.#requestInit(req);
+      const data = this.#requestInit(req);
       for (const middleware of this.#middlewares) {
         await middleware(data);
       }
+      // remove the raw req object to avoid accidental usage in handlers
+      delete data.req;
 
       const methodRoutes = this.#routes[data.method] || [];
       const route = methodRoutes.find(({ pattern }) => pattern.test(data.path));
@@ -160,18 +143,9 @@ export default class YAHF {
       // handle the request
       const handlerResult = await this.#getHandlerResponse(route, data);
       // send the response
-      res.statusCode = handlerResult?.statusCode || 200;
-      res.setHeader(
-        "Content-Type",
-        handlerResult?.contentType || CONTENT_TYPES.JSON
-      );
-
-      // Set headers to re-write the response
-      for (const key in handlerResult?.headers) {
-        res.setHeader(key, handlerResult?.headers[key]);
-      }
-      res.end(handlerResult?.payload);
+      this.#sendResponse(res, handlerResult);
     } catch (err) {
+      this.logger(`Error handling request: ${err?.message}`);
       res.statusCode = 500;
       res.end(err?.message);
     }
@@ -184,6 +158,26 @@ export default class YAHF {
    * @returns {Promise<HandlerResponse>|HandlerResponse} The handler response
    * @private
    */
+  #sendResponse(res, handlerResult) {
+    res.statusCode = handlerResult?.statusCode || 200;
+    const contentType = handlerResult?.contentType || CONTENT_TYPES.JSON;
+    res.setHeader("Content-Type", contentType);
+
+    // Set headers to re-write the response
+    for (const key in handlerResult?.headers) {
+      res.setHeader(key, handlerResult?.headers[key]);
+    }
+
+    res.end(this.#serializePayload(handlerResult?.payload, contentType));
+  }
+
+  #serializePayload(payload, contentType) {
+    if (contentType === CONTENT_TYPES.JSON) {
+      return JSON.stringify(payload);
+    }
+    return payload;
+  }
+
   #getHandlerResponse(route, data) {
     if (!route) {
       return notFound(data);
@@ -214,6 +208,7 @@ export default class YAHF {
     this.#options.port = opts.port ?? 1337;
     this.#logger = opts.logger ?? console.log;
     this.#server = createServer();
+    this.#middlewares.push(new BodyParser());
 
     this.#server.on("request", async (req, res) => {
       await this.#handleRequest(req, res);
