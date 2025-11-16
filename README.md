@@ -39,9 +39,10 @@ yarn add yahf
 
 ### Public Methods
 
-- `useMiddleware(middleware: (data) => void)`.
-  - Any result returned from this functions will be ignored.
-  - Will be called in FIFO.
+- `useMiddleware(middleware: (data) => void | Promise<void>)`.
+  - Any result returned from this function will be ignored.
+  - Will be called in FIFO order, after the built-in BodyParser.
+  - Can be async - middleware functions are awaited.
   - Return `this` so it can be chained.
 
 example:
@@ -101,6 +102,7 @@ const server = new YAHF()
     path: "echo",
     method: "POST",
     handler: async (data) => {
+      // data.payload is automatically parsed from JSON, unless Content-Type is different
       return {
         payload: data.payload,
       };
@@ -114,12 +116,60 @@ const server = new YAHF()
       return {
         statusCode: 200,
         contentType: "application/json",
-        payload: JSON.stringify({ userId }),
+        payload: { userId }, // Will be automatically stringified, as contentType is application/json by default
+      };
+    },
+  })
+  .addHandler({
+    path: "/text",
+    method: "POST",
+    handler: async (data) => {
+      // For text/plain requests, data.payload is a string
+      return {
+        statusCode: 200,
+        contentType: "text/plain",
+        payload: data.payload.toUpperCase(),
       };
     },
   });
 
 server.start();
+```
+
+## Built-in Middleware
+
+### BodyParser
+
+YAHF automatically includes a BodyParser middleware that handles request body parsing:
+
+- **JSON parsing** (`application/json`): Automatically parses JSON request bodies and makes them available in `data.payload`
+- **Text parsing** (`text/plain`): Parses plain text request bodies
+- **Default behavior**: When no `Content-Type` is specified, defaults to JSON parsing
+- **Error handling**: Invalid JSON throws an error that results in a 500 response with the error message
+- **Empty bodies**: Handled gracefully - `data.payload` will be `undefined` for requests with no body
+
+The BodyParser is automatically added to every YAHF instance and runs before any custom middleware.
+
+## Error Handling
+
+YAHF includes built-in error handling:
+
+- If a middleware throws an error, the request is immediately terminated with a 500 status code
+- If a handler throws an error, the request is terminated with a 500 status code
+- The error message is sent as the response body
+- Errors are logged using the configured logger
+
+Example:
+
+```javascript
+server.addHandler({
+  path: "/error",
+  method: "GET",
+  handler: async () => {
+    throw new Error("Something went wrong!");
+    // Results in: 500 response with body "Something went wrong!"
+  },
+});
 ```
 
 ## YAHF request lifecycle
@@ -131,10 +181,12 @@ server.start();
     query: URLSearchParams;
     method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH'...;
     headers: object;
-    payload?: string; // May be undefined if no body was sent
+    payload?: any; // Parsed request body (JSON object, text string, or undefined)
     groups?: object; // Optional URL pattern groups from route matching
   }
   ```
-- Middlewares are called FIFO, and called before any handler.
-- Handlers are matched based on both path and HTTP method.
-- Route patterns support parameters (e.g., `/users/:id`) and the matched values are available in `groups`.
+- **BodyParser middleware** runs first, parsing request bodies based on `Content-Type`
+- Custom middlewares are called FIFO after the BodyParser
+- Handlers are matched based on both path and HTTP method
+- Route patterns support parameters (e.g., `/users/:id`) and the matched values are available in `groups`
+- If a middleware or handler throws an error, YAHF responds with a 500 status code and the error message

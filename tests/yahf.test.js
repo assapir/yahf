@@ -328,12 +328,18 @@ describe("YAHF", () => {
         .addHandler({
           path: "echo/:id",
           method: "GET",
-          handler: async () => ({ payload: "param" }),
+          handler: () => ({
+            payload: "param",
+            contentType: "text/plain",
+          }),
         })
         .addHandler({
           path: "echo/static",
           method: "GET",
-          handler: async () => ({ payload: "static" }),
+          handler: () => ({
+            payload: "static",
+            contentType: "text/plain",
+          }),
         });
 
       await server.start();
@@ -351,12 +357,18 @@ describe("YAHF", () => {
         .addHandler({
           path: "echo/static",
           method: "GET",
-          handler: async () => ({ payload: "static" }),
+          handler: () => ({
+            payload: "static",
+            contentType: "text/plain",
+          }),
         })
         .addHandler({
           path: "echo/:id",
           method: "GET",
-          handler: async (data) => ({ payload: `param:${data.groups.id}` }),
+          handler: (data) => ({
+            payload: `param:${data.groups.id}`,
+            contentType: "text/plain",
+          }),
         });
 
       await server.start();
