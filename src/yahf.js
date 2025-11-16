@@ -1,11 +1,76 @@
 import { createServer } from "node:http";
 import { BodyParser } from "./middlewares/bodyParser.js";
 
+/**
+ * @typedef {Object} ContentTypes
+ * @property {string} JSON - The content type for JSON responses
+ * @property {string} TEXT - The content type for plain text responses
+ */
+
+/**
+ * Standard content types for HTTP responses
+ * @type {ContentTypes}
+ */
 export const CONTENT_TYPES = {
   JSON: "application/json",
   TEXT: "text/plain",
 };
 
+/**
+ * @typedef {Object} RequestData
+ * @property {string} path - The normalized path from the URL
+ * @property {URLSearchParams} query - The query parameters from the URL
+ * @property {string} method - The HTTP method (GET, POST, etc.)
+ * @property {Object.<string, string>} headers - Request headers
+ * @property {string|Object} [payload] - The request body (string or parsed object)
+ * @property {Object.<string, string>} [groups] - URL pattern groups (path parameters)
+ * @property {import('node:http').IncomingMessage} [req] - The raw HTTP request object (available in middlewares)
+ */
+
+/**
+ * @typedef {Object} HandlerResponse
+ * @property {number} [statusCode] - HTTP status code (default: 200)
+ * @property {string} [contentType] - Content-Type header value (default: application/json)
+ * @property {Object.<string, string>} [headers] - Additional response headers
+ * @property {string} [payload] - Response body
+ */
+
+/**
+ * @callback RouteHandler
+ * @param {RequestData} data - The request data
+ * @returns {Promise<HandlerResponse>|HandlerResponse} The handler response
+ */
+
+/**
+ * @callback Middleware
+ * @param {RequestData} data - The request data (can be modified)
+ * @returns {Promise<void>|void}
+ */
+
+/**
+ * @typedef {Object} YAHFOptions
+ * @property {number} [port=1337] - Port number for the server to listen on
+ * @property {Function} [logger=console.log] - Logger function to use for server logs
+ */
+
+/**
+ * @typedef {Object} RouteConfig
+ * @property {string} path - The path pattern for the route
+ * @property {string} method - The HTTP method for the route
+ * @property {RouteHandler} handler - The handler function for the route
+ */
+
+/**
+ * @typedef {Object} RouteEntry
+ * @property {URLPattern} pattern - The URLPattern for matching requests
+ * @property {RouteHandler} handler - The handler function
+ * @private
+ */
+
+/**
+ * Returns a 404 Not Found response
+ * @returns {HandlerResponse} The 404 response object
+ */
 const notFound = () => {
   return {
     statusCode: 404,
@@ -22,6 +87,12 @@ export default class YAHF {
   #logger;
 
   // static methods
+  /**
+   * Normalizes a path to ensure it starts with a forward slash
+   * @param {string} path - The path to normalize
+   * @returns {string} The normalized path
+   * @private
+   */
   static #normalizePath(path) {
     if (path.startsWith("/")) {
       return path;
@@ -30,6 +101,12 @@ export default class YAHF {
   }
 
   // private methods
+  /**
+   * Initializes and parses an incoming HTTP request
+   * @param {import('node:http').IncomingMessage} req - The incoming HTTP request
+   * @returns {RequestData} The parsed request data object
+   * @private
+   */
   #requestInit(req) {
     const parsedUrl = new URL(req.url, `http://${req.headers.host}`);
     const path = YAHF.#normalizePath(parsedUrl.pathname);
@@ -47,9 +124,11 @@ export default class YAHF {
   }
 
   /**
-   * Where the magic happens
-   * @param {import('http').IncomingMessage} req
-   * @param {import('http').ServerResponse} res
+   * Where the magic happens - handles incoming HTTP requests
+   * @param {import('node:http').IncomingMessage} req - The incoming HTTP request
+   * @param {import('node:http').ServerResponse} res - The HTTP response object
+   * @returns {Promise<void>}
+   * @private
    */
   async #handleRequest(req, res) {
     try {
@@ -74,6 +153,13 @@ export default class YAHF {
     }
   }
 
+  /**
+   * Sends the HTTP response to the client
+   * @param {import('node:http').ServerResponse} res - The HTTP response object
+   * @param {HandlerResponse} handlerResult - The handler result to send
+   * @returns {void}
+   * @private
+   */
   #sendResponse(res, handlerResult) {
     res.statusCode = handlerResult?.statusCode || 200;
     const contentType = handlerResult?.contentType || CONTENT_TYPES.JSON;
@@ -87,6 +173,13 @@ export default class YAHF {
     res.end(this.#serializePayload(handlerResult?.payload, contentType));
   }
 
+  /**
+   * Serializes the response payload based on content type
+   * @param {*} payload - The payload to serialize
+   * @param {string} contentType - The content type of the response
+   * @returns {string} The serialized payload
+   * @private
+   */
   #serializePayload(payload, contentType) {
     if (contentType === CONTENT_TYPES.JSON) {
       return JSON.stringify(payload);
@@ -94,6 +187,13 @@ export default class YAHF {
     return payload;
   }
 
+  /**
+   * Gets the handler response for a matched route
+   * @param {RouteEntry|undefined} route - The matched route entry
+   * @param {RequestData} data - The request data
+   * @returns {Promise<HandlerResponse>|HandlerResponse} The handler response
+   * @private
+   */
   #getHandlerResponse(route, data) {
     if (!route) {
       return notFound(data);
@@ -105,17 +205,19 @@ export default class YAHF {
   }
 
   // public properties
+  /**
+   * Gets the configured logger function
+   * @returns {Function} The logger function
+   */
   get logger() {
     return this.#logger;
   }
 
   // Public methods
   /**
-   * Creates a new instance of the HTTP server.
-   * @param {Object} [opts={}] - Configuration options for the server
-   * @param {number} [opts.port=1337] - Port number for the server to listen on
-   * @param {Function} [opts.logger=console.log] - Logger function to use for server logs
-   * @class
+   * Creates a new instance of the HTTP server
+   * @param {YAHFOptions} [opts={}] - Configuration options for the server
+   * @constructor
    */
   constructor(opts = {}) {
     this.#options = opts;
@@ -129,18 +231,20 @@ export default class YAHF {
     });
   }
 
+  /**
+   * Adds a middleware function to the middleware stack
+   * @param {Middleware} middleware - The middleware function to add
+   * @returns {YAHF} The YAHF instance for chaining
+   */
   useMiddleware(middleware) {
     this.#middlewares.push(middleware);
     return this;
   }
 
   /**
-   * Adds a new route handler for a specific path and method.
-   * @param {Object} options - The route handler configuration.
-   * @param {string} options.path - The path for the route.
-   * @param {string} options.method - The HTTP method for the route.
-   * @param {Function} options.handler - The handler function for the route.
-   * @returns {YAHF} The YAHF instance for chaining.
+   * Adds a new route handler for a specific path and method
+   * @param {RouteConfig} config - The route handler configuration
+   * @returns {YAHF} The YAHF instance for chaining
    */
   addHandler({ path, method, handler }) {
     // add the handler to the routes for specific path and method
@@ -151,6 +255,10 @@ export default class YAHF {
     return this;
   }
 
+  /**
+   * Starts the HTTP server and begins listening for requests
+   * @returns {Promise<YAHF>} A promise that resolves with the YAHF instance when the server starts
+   */
   start() {
     return new Promise((resolve) => {
       this.#server.listen(this.#options.port, () => {
@@ -164,6 +272,11 @@ export default class YAHF {
     });
   }
 
+  /**
+   * Stops the HTTP server and closes all connections
+   * @returns {Promise<void>} A promise that resolves when the server is stopped
+   * @throws {Error} If the server encounters an error while closing
+   */
   kill() {
     return new Promise((resolve, reject) => {
       this.#server.close((err) => {
