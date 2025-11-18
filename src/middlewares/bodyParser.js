@@ -27,7 +27,7 @@ export class BodyParser {
    * @private
    */
   #parse(data) {
-    const contentType = data.headers["content-type"] || "plain/text";
+    const contentType = data.headers?.get("content-type") || "plain/text";
     switch (contentType) {
       // case "multipart/form-data":
       //   return this.#parseFormData(data);

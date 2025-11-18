@@ -23,3 +23,23 @@ jobs:
           node-version: ${{ matrix.node-version }}
 
       - run: npm test
+
+  examples:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [24.x, 25.x]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Run examples and validate
+        run: |
+          set -e
+          npm run examples

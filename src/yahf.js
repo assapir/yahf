@@ -21,7 +21,7 @@ export const CONTENT_TYPES = {
  * @property {string} path - The normalized path from the URL
  * @property {URLSearchParams} query - The query parameters from the URL
  * @property {string} method - The HTTP method (GET, POST, etc.)
- * @property {Object.<string, string>} headers - Request headers
+ * @property {Headers} headers - Request headers
  * @property {string|Object} [payload] - The request body (string or parsed object)
  * @property {Object.<string, string>} [groups] - URL pattern groups (path parameters)
  * @property {import('node:http').IncomingMessage} [req] - The raw HTTP request object (available in middlewares)
@@ -31,7 +31,7 @@ export const CONTENT_TYPES = {
  * @typedef {Object} HandlerResponse
  * @property {number} [statusCode] - HTTP status code (default: 200)
  * @property {string} [contentType] - Content-Type header value (default: application/json)
- * @property {Object.<string, string>} [headers] - Additional response headers
+ * @property {Headers|Object.<string, string|Array<string>>} [headers] - Additional response headers (either a Web Headers instance or plain object). Arrays are supported for multiple values.
  * @property {string} [payload] - Response body
  */
 
@@ -112,7 +112,7 @@ export default class YAHF {
     const path = YAHF.#normalizePath(parsedUrl.pathname);
     const query = parsedUrl.searchParams;
     const method = req.method;
-    const headers = req.headers;
+    const headers = this.#buildHeadersFromRaw(req.headers);
 
     return {
       path,
@@ -121,6 +121,31 @@ export default class YAHF {
       headers,
       req,
     };
+  }
+
+  /**
+   * Builds a Web `Headers` object from Node's raw headers.
+   * Accepts a plain object (Node's `IncomingMessage.headers`) and
+   * converts arrays into multiple header values.
+   * @param {Object.<string, string|Array<string>>} rawHeaders
+   * @returns {Headers}
+   * @private
+   */
+  #buildHeadersFromRaw(rawHeaders) {
+    const headers = new Headers();
+    for (const [key, value] of Object.entries(rawHeaders || {})) {
+      if (Array.isArray(value)) {
+        for (const v of value) {
+          headers.append(key, String(v));
+        }
+      } else if (value !== undefined) {
+        headers.set(key, String(value));
+      } else {
+        headers.set(key, "");
+      }
+    }
+
+    return headers;
   }
 
   /**
@@ -165,12 +190,28 @@ export default class YAHF {
     const contentType = handlerResult?.contentType || CONTENT_TYPES.JSON;
     res.setHeader("Content-Type", contentType);
 
-    // Set headers to re-write the response
-    for (const key in handlerResult?.headers) {
-      res.setHeader(key, handlerResult?.headers[key]);
+    // Apply headers if provided
+    if (handlerResult?.headers) {
+      this.#applyResponseHeaders(res, handlerResult.headers);
     }
 
     res.end(this.#serializePayload(handlerResult?.payload, contentType));
+  }
+
+  /**
+   * Applies response headers to the Node ServerResponse. Accepts either a
+   * Web `Headers` instance or a plain object mapping header names to values
+   * (string or array of strings).
+   * @param {import('node:http').ServerResponse} res
+   * @param {Headers|Object.<string, string|Array<string>>} headers
+   * @private
+   */
+  #applyResponseHeaders(res, headers) {
+    const entries = headers instanceof Headers ? headers : Object.entries(headers);
+
+    for (const [key, value] of entries) {
+      res.setHeader(key, value);
+    }
   }
 
   /**
