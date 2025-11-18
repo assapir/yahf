@@ -27,7 +27,7 @@ describe("YAHF", () => {
     const port = getRandomPort();
     const server = createServer(port)
       .useMiddleware((data) => {
-        data.payload = `${data.headers["user-agent"]} and ${data.method}`;
+        data.payload = `${data.headers.get("user-agent")} and ${data.method}`;
       })
       .addHandler({
         path: "echo",
@@ -37,9 +37,7 @@ describe("YAHF", () => {
             statusCode: 201,
             payload: data.payload,
             contentType: "text/plain",
-            headers: {
-              "oh-no": "this is a test",
-            },
+            headers: new Headers({ "oh-no": "this is a test" }),
           };
         },
       });
@@ -77,7 +75,7 @@ describe("YAHF", () => {
     const port = getRandomPort();
     const server = createServer(port)
       .useMiddleware((data) => {
-        data.payload = `${data.headers["user-agent"]} and ${data.method}`;
+        data.payload = `${data.headers.get("user-agent")} and ${data.method}`;
       })
       .addHandler({
         path: "echo",
@@ -87,9 +85,7 @@ describe("YAHF", () => {
             statusCode: 201,
             payload: data.payload,
             contentType: "text/plain",
-            headers: {
-              "oh-no": "this is a test",
-            },
+            headers: new Headers({ "oh-no": "this is a test" }),
           };
         },
       });
@@ -123,6 +119,67 @@ describe("YAHF", () => {
     );
   });
 
+  it("Accepts response headers as plain object", async () => {
+    const port = getRandomPort();
+    const server = createServer(port).addHandler({
+      path: "obj-headers",
+      method: "GET",
+      handler: async () => {
+        return {
+          statusCode: 200,
+          payload: "ok",
+          contentType: "text/plain",
+          headers: { "x-plain": "plain-object" },
+        };
+      },
+    });
+
+    await server.start();
+    const res = await requestYahf("GET", "/obj-headers", port);
+    await server.kill();
+
+    const body = await res.text();
+    assert.strictEqual(res.status, 200);
+    assert.strictEqual(body, "ok");
+    assert.strictEqual(
+      res.headers.get("x-plain"),
+      "plain-object",
+      "Plain object headers should be accepted and appear in the response"
+    );
+  });
+
+  it("Supports multiple header values from object arrays", async () => {
+    const port = getRandomPort();
+    const server = createServer(port).addHandler({
+      path: "multi",
+      method: "GET",
+      handler: async () => {
+        return {
+          statusCode: 200,
+          payload: "ok",
+          contentType: "text/plain",
+          headers: {
+            "x-multi": ["alpha", "beta"],
+          },
+        };
+      },
+    });
+
+    await server.start();
+    const res = await requestYahf("GET", "/multi", port);
+    await server.kill();
+
+    const body = await res.text();
+    assert.strictEqual(res.status, 200);
+    assert.strictEqual(body, "ok");
+    // Multiple values should be visible as a comma-separated string in fetch
+    assert.match(
+      res.headers.get("x-multi"),
+      /alpha,\s*beta/,
+      "array header values should be emitted as combined header"
+    );
+  });
+
   it("Returns 404 for different methods", async () => {
     const port = getRandomPort();
     const server = createServer(port).addHandler({
@@ -133,9 +190,7 @@ describe("YAHF", () => {
           statusCode: 201,
           payload: data.payload,
           contentType: "text/plain",
-          headers: {
-            "oh-no": "this is a test",
-          },
+          headers: new Headers({ "oh-no": "this is a test" }),
         };
       },
     });

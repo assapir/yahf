@@ -73,7 +73,7 @@ server.useMiddleware((data) => {
     statusCode?: number; // Defaults to 200
     contentType?: string; // Defaults to 'application/json'
     payload?: any;
-    headers?: object; // Optional headers to set on the response
+    headers?: Headers|object; // Optional response headers as either a Web `Headers` instance or a plain object. Object values may be strings or arrays of strings for multiple header values.
   }
   ```
 
@@ -134,6 +134,35 @@ const server = new YAHF()
   });
 
 server.start();
+
+### Example scripts
+
+There are ready-made examples in the `examples/` directory which also run as part of CI. Run them locally and call them with curl to see responses. To run all examples locally and validate them automatically, use the `examples` npm script (it will start every `*.js` example on consecutive ports starting at 1338):
+
+```bash
+# run all examples and validate
+npm run examples
+```
+
+- Run the echo example (POST /echo):
+
+```bash
+# start the example server on port 1338
+PORT=1338 node examples/echo.js
+
+# in another terminal, call it with curl
+curl -s -X POST -H "Content-Type: application/json" -d '{"hello":"world"}' http://localhost:1338/echo
+```
+
+- Run the headers example (GET /headers) which demonstrates returning a `Headers` instance from a handler:
+
+```bash
+# start the headers example on port 1339
+PORT=1339 node examples/headers.js
+
+# use curl to fetch a response and show headers
+curl -sI http://localhost:1339/headers
+```
 ```
 
 ## Built-in Middleware
@@ -180,7 +209,7 @@ server.addHandler({
     path: string;
     query: URLSearchParams;
     method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH'...;
-    headers: object;
+    headers: Headers|object;
     payload?: any; // Parsed request body (JSON object, text string, or undefined)
     groups?: object; // Optional URL pattern groups from route matching
   }

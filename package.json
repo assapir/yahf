@@ -8,7 +8,8 @@
     "node": ">= 24"
   },
   "scripts": {
-    "test": "node --test --experimental-test-coverage"
+    "test": "node --test --experimental-test-coverage",
+    "examples": "node examples/runExamples.js"
   },
   "author": "Assaf Sapir <assaf@sapir.io>",
   "license": "MIT",

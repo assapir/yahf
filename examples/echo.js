@@ -1,6 +1,7 @@
 import YAHF from "../src/yahf.js";
 
-const server = new YAHF().addHandler({
+const port = Number(process.env.PORT ?? 1337);
+const server = new YAHF({ port }).addHandler({
   path: "echo",
   method: "POST",
   handler: async (data) => {
@@ -11,3 +12,4 @@ const server = new YAHF().addHandler({
 });
 
 server.start();
+console.log(`Example echo server started on port ${port}`);
